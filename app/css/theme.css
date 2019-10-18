@@ -1,6 +1,12 @@
 html {
 }
+
 body {
+    text-rendering: optimizeLegibility !important;
+    font-weight: normal;
+}
+strong {
+    font-weight: 600;
 }
 /* MATERIAL */
 button {
@@ -155,6 +161,9 @@ input[type="number"] {
     outline: none;
     border: 1px solid #CCC;
     border-radius: 4px;
+}
+input[type=number]::-webkit-inner-spin-button {
+    height: 2.4em;
 }
 textarea {
     font: inherit;

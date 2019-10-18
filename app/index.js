@@ -1,9 +1,5 @@
 "use strict";
 
-if (require('electron-squirrel-startup')) {
-  return;
-}
-
 const {app, protocol, shell, BrowserWindow} = require("electron");
 const pkg      = require("./package.json");
 const fs       = require("fs");
@@ -11,14 +7,21 @@ const path     = require("path");
 
 app.commandLine.appendSwitch("allow-file-access-from-files");
 app.commandLine.appendSwitch("allow-file-access");
+app.commandLine.appendSwitch("disable-smooth-scrolling");
+app.commandLine.appendSwitch("disable-site-isolation-trials");
 
 // Disable hardware acceleration by default for Linux
 // TODO: implement a setting for this one and requires a restart after changing that value
 if (process.platform.trim().toLowerCase() == "linux" && app.disableHardwareAcceleration) {
-    console.log("Hardware acceleration disabled for Linux.");
-    app.disableHardwareAcceleration();
+    if (process.argv.indexOf("--with-hwa") < 0) {
+        console.log("Hardware acceleration disabled for Linux.");
+        app.disableHardwareAcceleration();
+    } else {
+        console.log("Hardware acceleration forcibly enabled.");
+    }
 }
 
+global.sharedObject = { appArguments: process.argv };
 
 var handleRedirect = (e, url) => {
     e.preventDefault();
@@ -34,7 +37,8 @@ function createWindow() {
           webSecurity: false,
           allowRunningInsecureContent: true,
           allowDisplayingInsecureContent: true,
-          defaultEncoding: "UTF-8"
+          defaultEncoding: "UTF-8",
+          nodeIntegration: true
         },
     };
 
@@ -72,11 +76,21 @@ function createWindow() {
         app.exit(0);
     });
 
+    if (process.platform == 'darwin') {
+        var {MacOSToolbar} = require('./views/toolbars/MacOSToolbar');
+        MacOSToolbar.createMacOSToolbar();
+    }
+
     mainWindow.webContents.on("will-navigate", handleRedirect);
     mainWindow.webContents.on("new-window", handleRedirect);
 
     app.mainWindow = mainWindow;
     global.mainWindow = mainWindow;
+
+    // const updater = require('./updater');
+    // setTimeout(function() {
+    //     updater.checkForUpdates();
+    // }, 3000);
 }
 
 // Quit when all windows are closed.
@@ -89,11 +103,13 @@ app.on("window-all-closed", function() {
 app.on('ready', function() {
     protocol.registerBufferProtocol("ref", function(request, callback) {
         var path = request.url.substr(6);
-        console.log("PATH", path);
 
         fs.readFile(path, function (err, data) {
-            console.log("Got data: ", data.length);
-            callback({mimeType: "image/jpeg", data: new Buffer(data)});
+            if (err) {
+                callback({mimeType: "text/html", data: new Buffer("Not found")});
+            } else {
+                callback({mimeType: "image/jpeg", data: new Buffer(data)});
+            }
         });
 
     }, function (error, scheme) {
@@ -111,6 +127,9 @@ app.on('ready', function() {
 
     const webPrinter = require("./pencil-core/common/webPrinter");
     webPrinter.start();
+
+    const globalShortcutMainService = require("./tools/global-shortcut-main.js");
+    globalShortcutMainService.start();
 });
 app.on("activate", function() {
     // On OS X it's common to re-create a window in the app when the
@@ -122,8 +141,10 @@ app.on("activate", function() {
     }
 });
 
+app.on("will-quit", function () {
+  require("electron").globalShortcut.unregisterAll()
+});
+
 process.on('uncaughtException', function (error) {
     console.error(error);
 });
-
-console.log("Platform: " + process.platform.trim());

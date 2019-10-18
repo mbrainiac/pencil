@@ -1,6 +1,7 @@
 function SharedBorderStyleEditor() {
     BaseTemplatedWidget.call(this);
     Pencil.registerSharedEditor(this);
+    ToolBar.setupFocusHandling(this.node());
 }
 __extend(BaseTemplatedWidget, SharedBorderStyleEditor);
 
@@ -42,6 +43,8 @@ SharedBorderStyleEditor.prototype.isDisabled = function () {
 };
 
 SharedBorderStyleEditor.prototype.attach = function (target) {
+    if (target && target.getAttributeNS && target.getAttributeNS(PencilNamespaces.p, "locked") == "true") { return; }
+
     var style = target.getProperty(SharedBorderStyleEditor.PROPERTY_NAME, "any");
     if (!style)  {
         this.detach();
