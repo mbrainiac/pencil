@@ -1163,7 +1163,7 @@ Controller.prototype.rasterizeCurrentPage = function (targetPage) {
         this.applicationPane.rasterizer.rasterizePageToFile(page, filePath, function (p, error) {
             if (!error) {
                 NotificationPopup.show("Page exprted as '" + path.basename(filePath) + "'.", "View", function () {
-                    shell.openItem(filePath);
+                    shell.showItemInFolder(filePath);
                 });
             }
         }, undefined, false, options);
@@ -1204,7 +1204,8 @@ Controller.prototype.copyPageBitmap = function (targetPage) {
         var filePath = tmp.tmpNameSync();
         thiz.applicationPane.rasterizer.rasterizePageToFile(page, filePath, function (p, error) {
             if (!error) {
-                clipboard.writeImage(filePath);
+                var image = nativeImage.createFromPath(filePath);
+                var result = clipboard.writeImage(image);
                 fs.unlinkSync(filePath);
                 NotificationPopup.show("Page bitmap copied into clipboard.");
             }
@@ -1232,7 +1233,8 @@ Controller.prototype.rasterizeSelection = function (options) {
         
         this.applicationPane.rasterizer.rasterizeSelectionToFile(target, filePath, function (p, error) {
             if (!error) {
-                clipboard.writeImage(filePath);
+                var image = nativeImage.createFromPath(filePath);
+                clipboard.writeImage(image);
                 fs.unlinkSync(filePath);
                 NotificationPopup.show("Page bitmap copied into clipboard.");
             }
